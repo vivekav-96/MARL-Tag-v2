@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 from keras import Sequential
 from keras.engine.saving import model_from_json
@@ -14,17 +15,21 @@ class DQNPolicy(Policy):
     def __init__(self, env, scenario, agent_index):
         super().__init__()
         self.env = env
+        self.scenario = scenario
         self.agent_index = agent_index
         self.obs_space = env.observation_space[agent_index].shape[0]
         self.action_space = env.action_space[agent_index].n
-        self.network_path = 'dqn_networks/{0}/network_obs{1}_act{2}/'.format(self.agent_index,
-                                                                             self.obs_space, self.action_space)
+        self.network_path = 'dqn_networks/{0}/{1}/network_obs{2}_act{3}/'.format(self.scenario, self.agent_index,
+                                                                                 self.obs_space, self.action_space)
         self.network = self.load_network()
-        print('Action Space', self.action_space)
         print('Observation Space', self.obs_space)
+        print('Action Space', self.action_space)
 
     def action(self, obs):
-        return [0, 0, 1, 0, 0]
+        obs = np.asarray(obs)
+        obs = obs.reshape((1,) + obs.shape)
+        res = self.network.predict([obs])
+        return res[0]
 
     def train_network(self):
         pass

@@ -13,7 +13,7 @@ from bin.policies.dqn_policy import DQNPolicy
 if __name__ == '__main__':
     # parse arguments
     parser = argparse.ArgumentParser(description=None)
-    parser.add_argument('-s', '--scenario', default='simple_tag.py', help='Path of the scenario Python script.')
+    parser.add_argument('-s', '--scenario', default='simple.py', help='Path of the scenario Python script.')
     args = parser.parse_args()
 
     # load scenario from script

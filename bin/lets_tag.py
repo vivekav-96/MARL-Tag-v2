@@ -39,6 +39,24 @@ def agent_captured_callback(agent, world):
     return False
 
 
+def show_game_over_dialog():
+    import pyglet
+
+    window = pyglet.window.Window(width=250, height=125, caption='Game Over')
+    label = pyglet.text.Label('Runner Has Been Captured',
+                              font_name='Times New Roman',
+                              font_size=20,
+                              x=window.width // 2, y=window.height // 2, width=window.width // 2,
+                              anchor_x='center', anchor_y='center', multiline=True)
+
+    @window.event
+    def on_draw():
+        window.clear()
+        label.draw()
+
+    pyglet.app.run()
+
+
 if __name__ == '__main__':
     # parse arguments
     parser = argparse.ArgumentParser(description=None)
@@ -53,6 +71,7 @@ if __name__ == '__main__':
     env = MultiAgentEnv(world, scenario.reset_world, scenario.reward, scenario.observation, info_callback=None,
                         done_callback=agent_captured_callback,
                         shared_viewer=True)
+    env.seed(312)
     # render call to create viewer window (necessary only for interactive policies)
     # env.render(mode='rgb_array')
 
@@ -81,6 +100,10 @@ if __name__ == '__main__':
 
         for p in policies:
             p.adapt()
+
+        if any(done_n):
+            show_game_over_dialog()
+            break
 
         state_n = next_state_n
 

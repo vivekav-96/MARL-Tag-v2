@@ -6,6 +6,7 @@ import numpy as np
 from keras import Sequential
 from keras.engine.saving import model_from_json
 from keras.layers import Dense
+from keras.optimizers import SGD
 
 from multiagent.environment import MultiAgentEnv
 from multiagent.policy import Policy
@@ -28,8 +29,6 @@ class DQNPolicy(Policy):
                                                                                  self.obs_space, self.action_space)
         self.network = self.load_network()
         self.memory = []
-        print('Observation Space', self.obs_space)
-        print('Action Space', self.action_space)
 
     def add_memory(self, experience):
         """
@@ -43,7 +42,7 @@ class DQNPolicy(Policy):
         :return: Training accuracy
         """
         print('Adapting Agent {0}'.format(self.agent_index))
-        batch = random.sample(self.memory, min(10, len(self.memory)))
+        batch = random.sample(self.memory, min(100, len(self.memory)))
         x = [sample.state for sample in batch]
         y = []
         for sample in batch:
@@ -88,7 +87,7 @@ class DQNPolicy(Policy):
                 network = self.create_dqn_network()
         else:
             network = self.create_dqn_network()
-        network.compile(loss='mean_squared_error', optimizer='sgd')
+        network.compile(loss='mean_squared_error', optimizer=SGD(lr=0.01, momentum=0.0, decay=0.0, nesterov=True))
         return network
 
     def create_dqn_network(self):

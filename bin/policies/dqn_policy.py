@@ -1,4 +1,6 @@
 import os
+import random
+
 import numpy as np
 
 from keras import Sequential
@@ -8,9 +10,12 @@ from keras.layers import Dense
 from multiagent.environment import MultiAgentEnv
 from multiagent.policy import Policy
 
+from bin.misc.experience import Experience
+
 
 class DQNPolicy(Policy):
     env: MultiAgentEnv
+    EPSILON_VALUE = 0.25
 
     def __init__(self, env, scenario, agent_index):
         super().__init__()
@@ -22,17 +27,40 @@ class DQNPolicy(Policy):
         self.network_path = 'dqn_networks/{0}/{1}/network_obs{2}_act{3}/'.format(self.scenario, self.agent_index,
                                                                                  self.obs_space, self.action_space)
         self.network = self.load_network()
+        self.memory = []
         print('Observation Space', self.obs_space)
         print('Action Space', self.action_space)
 
+    def add_memory(self, experience):
+        """
+        :type experience: Experience
+        """
+        self.memory.append(experience)
+
+    def adapt(self):
+        """
+        Method to train DQN network
+        :return: Training accuracy
+        """
+        print('Adapting Agent {0}'.format(self.agent_index))
+        batch = random.sample(self.memory, min(10, len(self.memory)))
+        x = [sample.state for sample in batch]
+        y = []
+        for sample in batch:
+            target = sample.action
+            target[np.argmax(sample.action)] += sample.reward
+            y.append(target)
+        self.network.fit(np.asarray(x), np.asarray(y), verbose=1)
+
     def action(self, obs):
+        r = random.random()
+        if r < DQNPolicy.EPSILON_VALUE:
+            return random.randint(0, self.action_space-1)
         obs = np.asarray(obs)
         obs = obs.reshape((1,) + obs.shape)
         res = self.network.predict([obs])
-        return res[0]
-
-    def train_network(self):
-        pass
+        action = np.argmax(res[0])
+        return action
 
     def save_network(self):
         if not os.path.exists(self.network_path):

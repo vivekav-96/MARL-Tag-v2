@@ -13,7 +13,7 @@ from multiagent.environment import MultiAgentEnv
 from bin.policies.dqn_policy import DQNPolicy
 
 RUNNER_SPEED = 0.3
-CHASER_SPEED = 0.2
+CHASER_SPEED = 0.25
 
 
 def is_collision(agent1, agent2):
@@ -37,6 +37,11 @@ def agent_captured_callback(agent, world):
                     if is_collision(agent, a):
                         return True
     return False
+
+
+def save_policy_networks(policies):
+    for p in policies:
+        p.save_network()
 
 
 def show_game_over_dialog():
@@ -82,7 +87,7 @@ if __name__ == '__main__':
     # execution loop
     state_n = env.reset()
     iterations = 0
-    while iterations < 500:
+    while True:
         iterations += 1
         # query for action from each agent's policy
         act_n = []
@@ -96,12 +101,15 @@ if __name__ == '__main__':
         next_state_n, reward_n, done_n, _ = env.step(act_n)
 
         for i, p in enumerate(policies):
+            print('{} got reward {}'.format(agents[i].name, reward_n[i]))
             p.add_memory(Experience(state_n[i], act_n[i], reward_n[i], next_state_n[i], done_n[i]))
+        print('------------------------------------------------------------------------------------------------------')
 
         for p in policies:
             p.adapt()
 
         if any(done_n):
+            save_policy_networks(policies)
             show_game_over_dialog()
             break
 
@@ -109,5 +117,8 @@ if __name__ == '__main__':
 
         env.render(mode='rgb_array')
 
-    for p in policies:
-        p.save_network()
+        # Checkpointing : Save networks every 100 iterations
+        if iterations % 100 == 0:
+            save_policy_networks(policies)
+
+    save_policy_networks(policies)

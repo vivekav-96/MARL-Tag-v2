@@ -41,7 +41,6 @@ class DQNPolicy(Policy):
         Method to train DQN network
         :return: Training accuracy
         """
-        print('Adapting Agent {0}'.format(self.agent_index))
         batch = random.sample(self.memory, min(100, len(self.memory)))
         x = [sample.state for sample in batch]
         y = []
@@ -49,7 +48,7 @@ class DQNPolicy(Policy):
             target = sample.action
             target[np.argmax(sample.action)] += sample.reward
             y.append(target)
-        self.network.fit(np.asarray(x), np.asarray(y), verbose=1)
+        self.network.fit(np.asarray(x), np.asarray(y), verbose=0)
 
     def action(self, obs):
         r = random.random()
@@ -87,7 +86,7 @@ class DQNPolicy(Policy):
                 network = self.create_dqn_network()
         else:
             network = self.create_dqn_network()
-        network.compile(loss='mean_squared_error', optimizer=SGD(lr=0.01, momentum=0.0, decay=0.0, nesterov=True))
+        network.compile(loss='mean_squared_error', optimizer='adam')
         return network
 
     def create_dqn_network(self):
@@ -98,9 +97,9 @@ class DQNPolicy(Policy):
         """
         print('creating model ', self.network_path)
         model = Sequential()
-        model.add(Dense(self.obs_space))
-        model.add(Dense(self.obs_space * 2))
-        model.add(Dense(self.obs_space * 3))
-        model.add(Dense(self.obs_space * 2))
-        model.add(Dense(self.action_space, activation='tanh'))
+        model.add(Dense(50, input_dim=self.obs_space, activation='relu'))
+        model.add(Dense(100, activation='relu'))
+        # model.add(Dense(self.obs_space * 3))
+        # model.add(Dense(self.obs_space * 2))
+        model.add(Dense(self.action_space, activation='linear'))
         return model

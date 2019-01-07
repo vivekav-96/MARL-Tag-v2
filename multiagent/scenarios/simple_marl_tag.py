@@ -50,7 +50,7 @@ class Scenario(BaseScenario):
             agent.state.c = np.zeros(world.dim_c)
         for i, landmark in enumerate(world.landmarks):
             if not landmark.boundary:
-                landmark.state.p_pos = [0, 0]
+                landmark.state.p_pos = np.zeros(world.dim_p)
                 landmark.state.p_vel = np.zeros(world.dim_p)
 
 

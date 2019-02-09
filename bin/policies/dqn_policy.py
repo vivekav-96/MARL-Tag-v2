@@ -36,6 +36,9 @@ class DQNPolicy(Policy):
         """
         self.memory.append(experience)
 
+    def clear_memory(self):
+        self.memory.clear()
+
     def adapt(self):
         """
         Method to train DQN network

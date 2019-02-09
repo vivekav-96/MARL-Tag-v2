@@ -18,7 +18,7 @@ CHASER_SPEED = 0.25
 CHECKPOINT_ITERATIONS = 50
 GAME_ITERATION_LIMIT = 300
 TRAIN_FOR_EPISODES = 50
-TRAINING_MODE = True
+TRAINING_MODE = False
 
 RUNNER_CAPTURED_MSG = 'Runner Has Been Captured !'
 RUNNER_ESCAPED_MSG = 'Runner Escaped !'
@@ -103,9 +103,9 @@ def start_a_game():
             print('Episode : {}, Iteration : {}'.format(episode, iterations))
         for i, p in enumerate(policies):
             p.add_memory(Experience(state_n[i], act_n[i], reward_n[i], next_state_n[i], done_n[i]))
-            p.adapt()
+            loss = p.adapt()
             if not TRAINING_MODE:
-                print('{} got reward {}'.format(agents[i].name, reward_n[i]))
+                print('{0} got reward {1}. Trained with loss {2:.4f}'.format(agents[i].name, reward_n[i], loss))
 
         if any(done_n):
             save_policy_networks(policies)

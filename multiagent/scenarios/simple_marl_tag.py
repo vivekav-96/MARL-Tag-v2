@@ -119,6 +119,10 @@ class Scenario(BaseScenario):
         return main_reward
 
     def agent_reward(self, agent, world):
+        """
+        :type agent Agent
+        :type world: World
+        """
         # Agents are negatively rewarded if caught by adversaries
         rew = 0
         shape = True
@@ -130,6 +134,12 @@ class Scenario(BaseScenario):
             for a in adversaries:
                 if self.is_collision(a, agent):
                     rew -= 10
+
+        for lm in world.landmarks:
+            if not lm.boundary:
+                rew += 0.1 * np.sqrt(np.sum(np.square(agent.state.p_pos - lm.state.p_pos)))
+                if self.is_collision(agent, lm):
+                    rew += 10
 
         # agents are penalized for exiting the screen, so that they can be caught by the adversaries
         def bound(x):

@@ -23,7 +23,7 @@ def is_collision(agent1, agent2):
     return True if dist < dist_min else False
 
 
-def agent_captured_callback(agent, world):
+def game_end_callback(agent, world):
     for a in world.agents:
         if a == agent:
             continue
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     world = scenario.make_world()
     # create multiagent environment
     env = MultiAgentEnv(world, scenario.reset_world, scenario.reward, scenario.observation, info_callback=None,
-                        done_callback=agent_captured_callback,
+                        done_callback=game_end_callback,
                         shared_viewer=True)
     env.seed(312)
     # render call to create viewer window (necessary only for interactive policies)

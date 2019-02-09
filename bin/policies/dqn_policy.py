@@ -41,7 +41,7 @@ class DQNPolicy(Policy):
         Method to train DQN network
         :return: Training accuracy
         """
-        batch = random.sample(self.memory, min(100, len(self.memory)))
+        batch = random.sample(self.memory, min(32, len(self.memory)))
         x = [sample.state for sample in batch]
         y = []
         for sample in batch:

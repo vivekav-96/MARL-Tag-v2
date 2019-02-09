@@ -16,7 +16,7 @@ SCENARIO = 'simple_marl_tag.py'
 RUNNER_SPEED = 0.3
 CHASER_SPEED = 0.25
 CHECKPOINT_ITERATIONS = 50
-GAME_ITERATION_LIMIT = 500
+GAME_ITERATION_LIMIT = 300
 TRAIN_FOR_EPISODES = 50
 TRAINING_MODE = True
 
@@ -32,7 +32,8 @@ def is_collision(agent1, agent2):
 
 
 def game_end_callback(agent, world):
-    if iterations > GAME_ITERATION_LIMIT:
+    global iterations
+    if iterations >= GAME_ITERATION_LIMIT:
         return True
 
     for a in world.agents:
@@ -73,6 +74,57 @@ def show_game_over_dialog():
     pyglet.app.run()
 
 
+def start_a_game():
+    # Clear memory of each agent before a game.
+    for p in policies:
+        p.clear_memory()
+
+    state_n = env.reset()
+
+    global iterations
+    iterations = 0
+
+    # execution loop
+    while True:
+        iterations += 1
+        # query for action from each agent's policy
+        act_n = []
+        for policy in policies:
+            action = policy.action(state_n[policy.agent_index])
+            action_one_hot = np.zeros(policy.action_space)
+            action_one_hot[action] = RUNNER_SPEED if agents[policy.agent_index] else CHASER_SPEED
+            act_n.append(action_one_hot)
+
+        # step environment
+        next_state_n, reward_n, done_n, _ = env.step(act_n)
+
+        if not TRAINING_MODE:
+            print('-------------------------------------------------------------------------------------------')
+            print('Episode : {}, Iteration : {}'.format(episode, iterations))
+        for i, p in enumerate(policies):
+            p.add_memory(Experience(state_n[i], act_n[i], reward_n[i], next_state_n[i], done_n[i]))
+            p.adapt()
+            if not TRAINING_MODE:
+                print('{} got reward {}'.format(agents[i].name, reward_n[i]))
+
+        if any(done_n):
+            save_policy_networks(policies)
+            if not TRAINING_MODE:
+                show_game_over_dialog()
+            break
+
+        state_n = next_state_n
+
+        env.render(mode='rgb_array')
+
+        # CheckPointing : Save networks every N iterations
+        if iterations % CHECKPOINT_ITERATIONS == 0:
+            save_policy_networks(policies)
+
+    save_policy_networks(policies)
+    return iterations
+
+
 if __name__ == '__main__':
 
     # load scenario from script
@@ -89,52 +141,12 @@ if __name__ == '__main__':
     policies = [DQNPolicy(env, SCENARIO, i) for i in range(env.n)]
 
     episode = 0
-    while episode < TRAIN_FOR_EPISODES:
-        episode += 1
-
-        for p in policies:
-            p.clear_memory()
-
-        state_n = env.reset()
-        iterations = 0
-
-        # execution loop
-        while True:
-            iterations += 1
-            # query for action from each agent's policy
-            act_n = []
-            for policy in policies:
-                action = policy.action(state_n[policy.agent_index])
-                action_one_hot = np.zeros(policy.action_space)
-                action_one_hot[action] = RUNNER_SPEED if agents[policy.agent_index] else CHASER_SPEED
-                act_n.append(action_one_hot)
-
-            # step environment
-            next_state_n, reward_n, done_n, _ = env.step(act_n)
-
-            for i, p in enumerate(policies):
-                if not TRAINING_MODE:
-                    print('{} got reward {}'.format(agents[i].name, reward_n[i]))
-                    print('-------------------------------------------------------------------------------------------')
-                p.add_memory(Experience(state_n[i], act_n[i], reward_n[i], next_state_n[i], done_n[i]))
-
-            for p in policies:
-                p.adapt()
-
-            if any(done_n):
-                save_policy_networks(policies)
-                if not TRAINING_MODE:
-                    show_game_over_dialog()
-                break
-
-            state_n = next_state_n
-
-            env.render(mode='rgb_array')
-
-            # CheckPointing : Save networks every N iterations
-            if iterations % CHECKPOINT_ITERATIONS == 0:
-                save_policy_networks(policies)
-
-        save_policy_networks(policies)
-        msg = RUNNER_CAPTURED_MSG if iterations < GAME_ITERATION_LIMIT else RUNNER_ESCAPED_MSG
-        print('Episode {} over. {}'.format(episode, msg))
+    iterations = 0
+    if TRAINING_MODE:
+        while episode < TRAIN_FOR_EPISODES:
+            episode += 1
+            start_a_game()
+            msg = RUNNER_CAPTURED_MSG if iterations < GAME_ITERATION_LIMIT else RUNNER_ESCAPED_MSG
+            print('Episode {} over. {}'.format(episode, msg))
+    else:
+        start_a_game()

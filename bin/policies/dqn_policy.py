@@ -6,7 +6,6 @@ import numpy as np
 from keras import Sequential
 from keras.engine.saving import model_from_json
 from keras.layers import Dense
-from keras.optimizers import SGD
 
 from multiagent.environment import MultiAgentEnv
 from multiagent.policy import Policy
@@ -51,7 +50,8 @@ class DQNPolicy(Policy):
             target = sample.action
             target[np.argmax(sample.action)] += sample.reward
             y.append(target)
-        self.network.fit(np.asarray(x), np.asarray(y), verbose=0)
+        fit_result = self.network.fit(np.asarray(x), np.asarray(y), verbose=0)
+        return fit_result.history['loss'][0]
 
     def action(self, obs):
         r = random.random()

@@ -6,15 +6,16 @@ from bin.misc.experience import Experience
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
-import argparse
 import numpy as np
 import multiagent.scenarios as scenarios
 from multiagent.environment import MultiAgentEnv
 from bin.policies.dqn_policy import DQNPolicy
 
+SCENARIO = 'simple_marl_tag.py'
+
 RUNNER_SPEED = 0.3
 CHASER_SPEED = 0.25
-
+CHECKPOINT_ITERATIONS = 50
 GAME_ITERATION_LIMIT = 500
 
 
@@ -53,8 +54,8 @@ def show_game_over_dialog():
     import pyglet
 
     window = pyglet.window.Window(width=250, height=125, caption='Game Over')
-    label = pyglet.text.Label('Runner Has Been Captured' if iterations < GAME_ITERATION_LIMIT
-                              else 'Chaser Failed to Capture Runner',
+    label = pyglet.text.Label('Runner Has Been Captured !' if iterations < GAME_ITERATION_LIMIT
+                              else 'Runner Escaped !',
                               font_name='Times New Roman',
                               font_size=20,
                               x=window.width // 2, y=window.height // 2, width=window.width // 2,
@@ -69,13 +70,9 @@ def show_game_over_dialog():
 
 
 if __name__ == '__main__':
-    # parse arguments
-    parser = argparse.ArgumentParser(description=None)
-    parser.add_argument('-s', '--scenario', default='simple_marl_tag.py', help='Path of the scenario Python script.')
-    args = parser.parse_args()
 
     # load scenario from script
-    scenario = scenarios.load(args.scenario).Scenario()
+    scenario = scenarios.load(SCENARIO).Scenario()
     # create world
     world = scenario.make_world()
     # create multiagent environment
@@ -83,11 +80,10 @@ if __name__ == '__main__':
                         done_callback=game_end_callback,
                         shared_viewer=True)
     env.seed(312)
-    # render call to create viewer window (necessary only for interactive policies)
-    # env.render(mode='rgb_array')
 
     agents = env.agents
-    policies = [DQNPolicy(env, args.scenario, i) for i in range(env.n)]
+    policies = [DQNPolicy(env, SCENARIO, i) for i in range(env.n)]
+
     experiences = []
 
     # execution loop
@@ -123,8 +119,8 @@ if __name__ == '__main__':
 
         env.render(mode='rgb_array')
 
-        # Checkpointing : Save networks every 100 iterations
-        if iterations % 100 == 0:
+        # CheckPointing : Save networks every 100 iterations
+        if iterations % CHECKPOINT_ITERATIONS == 0:
             save_policy_networks(policies)
 
     save_policy_networks(policies)

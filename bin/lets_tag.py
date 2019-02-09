@@ -15,6 +15,8 @@ from bin.policies.dqn_policy import DQNPolicy
 RUNNER_SPEED = 0.3
 CHASER_SPEED = 0.25
 
+GAME_ITERATION_LIMIT = 500
+
 
 def is_collision(agent1, agent2):
     delta_pos = agent1.state.p_pos - agent2.state.p_pos
@@ -24,6 +26,9 @@ def is_collision(agent1, agent2):
 
 
 def game_end_callback(agent, world):
+    if iterations > GAME_ITERATION_LIMIT:
+        return True
+
     for a in world.agents:
         if a == agent:
             continue
@@ -48,7 +53,8 @@ def show_game_over_dialog():
     import pyglet
 
     window = pyglet.window.Window(width=250, height=125, caption='Game Over')
-    label = pyglet.text.Label('Runner Has Been Captured',
+    label = pyglet.text.Label('Runner Has Been Captured' if iterations < GAME_ITERATION_LIMIT
+                              else 'Chaser Failed to Capture Runner',
                               font_name='Times New Roman',
                               font_size=20,
                               x=window.width // 2, y=window.height // 2, width=window.width // 2,

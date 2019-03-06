@@ -1,30 +1,31 @@
+import csv
 import os
 import random
 
 import numpy as np
-
 from keras import Sequential
 from keras.engine.saving import model_from_json
 from keras.layers import Dense
 
+from bin.misc.experience import Experience
 from multiagent.environment import MultiAgentEnv
 from multiagent.policy import Policy
-
-from bin.misc.experience import Experience
 
 
 class DQNPolicy(Policy):
     env: MultiAgentEnv
     EPSILON_VALUE = 0.25
-    REPLACE_TARG_NW_ITERS = 400
+    REPLACE_TARGET_NW_ITERS = 400
+    BENCHMARK = True
 
-    def __init__(self, env, scenario, agent_index):
+    def __init__(self, env, scenario, agent_index, is_adversary):
         super().__init__()
         self.gamma = 0.9
         self.learning_step = 0
         self.env = env
         self.scenario = scenario
         self.agent_index = agent_index
+        self.adversary = is_adversary
         self.obs_space = env.observation_space[agent_index].shape[0]
         self.action_space = env.action_space[agent_index].n
         self.network_path = 'dqn_networks/{0}/{1}/network_obs{2}_act{3}/'.format(self.scenario, self.agent_index,
@@ -32,6 +33,8 @@ class DQNPolicy(Policy):
         self.eval_network = self.load_network()
         self.target_network = self.load_network()
         self.memory = []
+        self.losses = []
+        self.avg_q_values = []
 
     def add_memory(self, experience):
         """
@@ -48,7 +51,7 @@ class DQNPolicy(Policy):
         :return: Training accuracy
         """
         self.learning_step += 1
-        if self.learning_step % DQNPolicy.REPLACE_TARG_NW_ITERS == 0:
+        if self.learning_step % DQNPolicy.REPLACE_TARGET_NW_ITERS == 0:
             self.update_target_weights()
 
         batch = random.sample(self.memory, min(32, len(self.memory)))
@@ -70,7 +73,10 @@ class DQNPolicy(Policy):
         y[not_done, np.argmax(actions[not_done], axis=1)] += discounted_rewards[not_done]
 
         fit_result = self.eval_network.fit(np.asarray(states), np.asarray(y), verbose=0)
-        return fit_result.history['loss'][0]
+        loss = fit_result.history['loss'][0]
+
+        self.losses.append(loss)
+        return loss
 
     def update_target_weights(self):
         self.target_network.set_weights(self.eval_network.get_weights())
@@ -78,12 +84,24 @@ class DQNPolicy(Policy):
     def action(self, obs):
         r = random.random()
         if r < DQNPolicy.EPSILON_VALUE:
-            return random.randint(0, self.action_space-1)
+            return random.randint(0, self.action_space - 1)
         obs = np.asarray(obs)
         obs = obs.reshape((1,) + obs.shape)
         res = self.eval_network.predict([obs])
+        self.avg_q_values.append(sum(res[0]) / float(len(res[0])))
         action = np.argmax(res[0])
         return action
+
+    def benchmark(self):
+        if not os.path.exists('benchmarks/'):
+            os.makedirs('benchmarks/')
+        file_name = 'benchmarks/benchmark_agent_{}.csv'.format(self.agent_index)
+        rewards = np.asarray([sample.reward for sample in self.memory])
+        with open(file_name, 'w') as csv_file:
+            wr = csv.writer(csv_file, dialect='excel')
+            wr.writerow(['Q_VALUES', 'REWARDS', 'LOSSES'])
+            for i in range(len(self.memory)):
+                wr.writerow(['<Q_Value>', rewards[i], self.losses[i]])
 
     def save_network(self):
         if not os.path.exists(self.network_path):

@@ -18,7 +18,8 @@ CHASER_SPEED = 0.25
 CHECKPOINT_ITERATIONS = 50
 GAME_ITERATION_LIMIT = 500
 TRAIN_FOR_EPISODES = 50
-TRAINING_MODE = False
+TRAINING_MODE = True
+BENCHMARK_DATA = True
 
 RUNNER_CAPTURED_MSG = 'Runner Has Been Captured !'
 RUNNER_ESCAPED_MSG = 'Runner Escaped !'
@@ -138,7 +139,7 @@ if __name__ == '__main__':
     env.seed(312)
 
     agents = env.agents
-    policies = [DQNPolicy(env, SCENARIO, i) for i in range(env.n)]
+    policies = [DQNPolicy(env, SCENARIO, i, agents[i].adversary) for i in range(env.n)]
 
     episode = 0
     iterations = 0
@@ -150,3 +151,7 @@ if __name__ == '__main__':
             print('Episode {} over. {}'.format(episode, msg))
     else:
         start_a_game()
+
+    if BENCHMARK_DATA:
+        for p in policies:
+            p.benchmark()
